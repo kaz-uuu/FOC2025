@@ -143,6 +143,20 @@ function GP() {
         activity_id={17}
       ></RankedTimeBonusQuestion>
     ),
+    "Flags": (
+      <ItemQuestion
+        groups={groups}
+        auth={auth}
+        activity_id={18}
+      ></ItemQuestion>
+    ),
+    "Bandanas": (
+      <ItemQuestion
+        groups={groups}
+        auth={auth}
+        activity_id={19}
+      ></ItemQuestion>
+    ),
   };
 
   function normalise_date(date: string) {
@@ -227,7 +241,7 @@ function GP() {
       const { data, error } = await supabase
         .from("foc_game")
         .select()
-        .in("day", gameState)
+        .or(`day.in.(${gameState}),day.eq.0`)
         .order("id", { ascending: true });
       console.log(data);
       if (error) {

@@ -79,7 +79,7 @@ export default function Login() {
               <Input
                 id="admin"
                 type="text"
-                placeholder="2100775"
+                placeholder="GP002"
                 required
                 ref={adminRef}
               />
