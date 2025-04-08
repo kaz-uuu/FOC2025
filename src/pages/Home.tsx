@@ -256,13 +256,13 @@ function Home({ oc_mode = false }: { oc_mode?: boolean }) {
     <main className="min-h-[100dvh] bg-white flex flex-col space-y-6 items-center justify-around w-full max-w-sm mx-auto">
       <div className="flex flex-col pt-12">
         <h1 className="text-2xl text-center font-light">SOC FOC 25'</h1>
-        <h1 className="text-3xl text-center text-purple-900 tracking-wide font-bold">
+        <h1 className="text-3xl text-center text-[#7d040b] tracking-wide font-bold">
           THE HUNGER GAMES
         </h1>
       </div>
 
       <img
-        src="/leaderboard/delorean.svg"
+        src="/leaderboard/logo.jpeg"
         alt="machine"
         className="max-w-sm w-full animate-float px-12"
       />
@@ -365,7 +365,7 @@ function Home({ oc_mode = false }: { oc_mode?: boolean }) {
             <TableCaption>
               {isLoading
                 ? "Loading Leaderboard..."
-                : "Current standing for SOC FOC 24'"}
+                : "Current standing for SOC FOC 25'"}
             </TableCaption>
             <TableHeader>
               <TableRow>
