@@ -11,13 +11,16 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@radix-ui/react-label";
 import { useState } from "react";
-import LengthQuestion from "@/components/LengthQuestion";
+import LengthQuestion from "@/components/RankedTimeQuestion";
 import AccurateQuestion from "@/components/AccurateQuestion";
 import ItemQuestion from "@/components/ItemQuestion";
 import ApocalypseQuestion from "@/components/ApocalypseQuestion";
 import TeamScoreQuestion from "@/components/TeamScoreQuestion";
 import Logout from "@/components/Logout";
 import { cn } from "@/lib/utils";
+import RankedTimeQuestion from "@/components/RankedTimeQuestion";
+import RankedTimeBonusQuestion from "@/components/RankedTimeBonusQuestion";
+import { Item, ItemIndicator } from "@radix-ui/react-select";
 
 function GP() {
   const navigate = useNavigate();
@@ -28,123 +31,124 @@ function GP() {
   const [logs, setLogs] = useState<any[]>([]);
 
   const activityMapper: { [key: string]: ReactNode } = {
-    "Memory Sports Club": (
-      <LengthQuestion
+    "Balloon Relay": (
+      <RankedTimeQuestion
         groups={groups}
         auth={auth}
-        min={1}
         activity_id={1}
-      ></LengthQuestion>
+      ></RankedTimeQuestion>
     ),
-    "Broken Communications": (
-      <AccurateQuestion
+    "Hula Hoop Pass": (
+      <RankedTimeQuestion
         groups={groups}
         auth={auth}
-        min={1}
-        max={10}
         activity_id={2}
-      ></AccurateQuestion>
+      ></RankedTimeQuestion>
     ),
-    "Guide The Lost": (
-      <LengthQuestion
+    "Memory Chain": (
+      <RankedTimeQuestion
         groups={groups}
         auth={auth}
-        min={1}
         activity_id={3}
-      ></LengthQuestion>
+      ></RankedTimeQuestion>
     ),
-    "AHHHHH BOMBS!": (
-      <LengthQuestion
+    "6 Legged Pentathlon": (
+      <RankedTimeQuestion
         groups={groups}
         auth={auth}
-        min={1}
         activity_id={4}
-      ></LengthQuestion>
+      ></RankedTimeQuestion>
     ),
-    "Hushed Odyssey": (
-      <LengthQuestion
+    "Glass Bridge": (
+      <RankedTimeQuestion
         groups={groups}
         auth={auth}
-        min={1}
         activity_id={5}
-      ></LengthQuestion>
+      ></RankedTimeQuestion>
     ),
-    "Radioactive Relay": (
-      <LengthQuestion
+    "Guess the Picture": (
+      <RankedTimeQuestion
         groups={groups}
         auth={auth}
-        min={1}
         activity_id={6}
-      ></LengthQuestion>
+      ></RankedTimeQuestion>
     ),
-    "Zoom In, Zoom Out": (
-      <LengthQuestion
-        groups={groups}
-        auth={auth}
-        min={1}
-        activity_id={7}
-      ></LengthQuestion>
-    ),
-    "Language Decipher": (
-      <LengthQuestion
-        groups={groups}
-        auth={auth}
-        min={1}
-        activity_id={8}
-      ></LengthQuestion>
-    ),
-    "Scavenger Odyssey": (
+    "Scavenger Hunt": (
       <ItemQuestion
         groups={groups}
         auth={auth}
-        min={1}
+        activity_id={7}
+      ></ItemQuestion>
+    ),
+    "Capture the Flag": (
+      <ItemQuestion
+        groups={groups}
+        auth={auth}
+        activity_id={8}
+      ></ItemQuestion>
+    ),
+    "Zone Dodgeball": (
+      <ItemQuestion
+        groups={groups}
+        auth={auth}
         activity_id={9}
       ></ItemQuestion>
     ),
-    Dodgeball: (
-      <TeamScoreQuestion
+    "Leaky Pipes": (
+      <ItemQuestion
         groups={groups}
         auth={auth}
         activity_id={10}
-      ></TeamScoreQuestion>
+      ></ItemQuestion>
     ),
-    "Captain's Ball": (
-      <TeamScoreQuestion
+    "Overhead Water Pass": (
+      <ItemQuestion
         groups={groups}
         auth={auth}
         activity_id={11}
-      ></TeamScoreQuestion>
+      ></ItemQuestion>
     ),
-    Apocalypse: (
-      <ApocalypseQuestion
+    "Water Balloon Toss": (
+      <ItemQuestion
         groups={groups}
         auth={auth}
         activity_id={12}
-      ></ApocalypseQuestion>
+      ></ItemQuestion>
     ),
-    "Safeguarding The Blueprints": (
-      <LengthQuestion
+    "Drip Drip Splash": (
+      <ItemQuestion
         groups={groups}
         auth={auth}
-        min={1}
         activity_id={13}
-      ></LengthQuestion>
+      ></ItemQuestion>
     ),
-    "Leaky Pipes": (
-      <LengthQuestion
+    "Exhibition Show": (
+      <ItemQuestion
         groups={groups}
         auth={auth}
-        min={1}
         activity_id={14}
-      ></LengthQuestion>
+      ></ItemQuestion>
     ),
-    "Water Dunk": (
-      <LengthQuestion
+    "Shopping Event": (
+      <ItemQuestion
         groups={groups}
         auth={auth}
-        min={1}
         activity_id={15}
-      ></LengthQuestion>
+      ></ItemQuestion>
+    ),
+    "Hunger Games": (
+      <ItemQuestion
+        groups={groups}
+        auth={auth}
+        activity_id={16}
+      ></ItemQuestion>
+    ),
+    "Bingo": (
+      <RankedTimeBonusQuestion
+        groups={groups}
+        auth={auth}
+        activity_id={17}
+      ></RankedTimeBonusQuestion>
     ),
   };
 
@@ -318,7 +322,7 @@ function GP() {
               <h1 className="text-xl font-bold pb-2">
                 Logs
                 <span className="ml-4 text-sm italic text-red-600">
-                  **Score are for games not actual points
+                  **Points that have already been awarded (Amazing Race points will be awarded by OC)
                 </span>
               </h1>
               <div className="text-sm italic text-red-600 text-center">

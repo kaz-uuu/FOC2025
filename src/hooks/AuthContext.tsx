@@ -13,10 +13,12 @@ export enum UserType {
 }
 
 export type User = {
-  admin: number;
+  admin: string;
   name: string;
-  phone: number;
   type: UserType;
+  password: string;
+  created_at: string;
+  group_id?: number;
 };
 
 type AuthContextType = {
@@ -63,19 +65,28 @@ export const AuthProvider = ({ children }: Props) => {
 
           const { data, error } = await supabase
             .from("foc_user")
-            .select()
+            .select("*")
             .eq("admin", userData.admin)
             .eq("name", userData.name)
             .eq("type", userData.type)
-            .eq("phone", userData.phone);
+            .eq("password", userData.password)
+            .single();
 
-          if (data?.length === 0 || error) {
+          if (error || !data) {
             throw new Error("User not found");
           }
 
-          setAuth(userData);
+          // Update the user data with the latest from the database, including group_id
+          const updatedUserData = {
+            ...userData,
+            group_id: data.group_id
+          };
+          
+          setAuth(updatedUserData);
+          localStorage.setItem("user", JSON.stringify(updatedUserData));
         }
       } catch (e) {
+        console.error("Auth error:", e);
         logout();
       } finally {
         setIsLoading(false);

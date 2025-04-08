@@ -78,288 +78,72 @@ function Home({ oc_mode = false }: { oc_mode?: boolean }) {
     };
 
   const getLeaderboard = async () => {
-    try {
-      const groups = await getGroups();
-      console.log(groups);
-      setIsLoading(true);
-      const freezeObj = await getFreeze();
+    setIsLoading(true);
+    
+    // Fetch all games and their points
+    const { data: gamesData, error: gamesError } = await supabase
+      .from("foc_game")
+      .select("*");
 
-      if (!freezeObj) {
-        throw "Freeze";
-      }
-
-      setFreeze(freezeObj.freeze);
-
-      const freezeDateTimeStamp = new Date(
-        freezeObj.freezeDate.getTime() -
-          freezeObj.freezeDate.getTimezoneOffset() * 60000
-      );
-      console.log(freezeDateTimeStamp);
-      let { data, error } = await supabase
-        .from("foc_points")
-        .select("*, foc_user(*), foc_group(*), foc_game(*)")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data) {
-        return;
-      }
-
-      if (!oc_mode && freezeObj.freeze) {
-        data = data.filter((e) => {
-          return new Date(e.created_at) < freezeObj.freezeDate;
-        });
-      }
-
-      const groupedData = data.reduce((acc, obj) => {
-        const key = `${obj.group}-${obj.game}`;
-        if (!acc[key]) {
-          acc[key] = [];
-        }
-        acc[key].push(obj);
-        return acc;
-      }, {});
-
-      console.log(groupedData);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const checkingData: { [key: number]: any } = {};
-
-      const groupedArray = Object.entries(groupedData).map(([key, value]) => ({
-        group: parseInt(key.split("-")[0]),
-        game: parseInt(key.split("-")[1]),
-        max: (value as { point: number }[]).reduce((max, obj) =>
-          max.point > obj.point ? max : obj
-        ).point,
-        min: (value as { point: number }[]).reduce((min, obj) =>
-          min.point < obj.point ? min : obj
-        ).point,
-      }));
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const gameData: { [key: number]: any[] } = {};
-
-      groupedArray.forEach((entry) => {
-        const groupNumber = entry.game;
-        if (!gameData[groupNumber]) {
-          gameData[groupNumber] = [];
-        }
-        gameData[groupNumber].push(entry);
-      });
-
-      console.log(gameData);
-
-      const leaderboardDict: { [key: string]: number } = {};
-
-      for (const group of groups) {
-        let currentScore = 0;
-        checkingData[group.id as number] = {};
-        for (const row of data) {
-          if (checkingData[group.id][row.game] == undefined) {
-            checkingData[group.id][row.game] = [];
-          }
-          let point = 0;
-          if (row.group != group.id) continue;
-          const mapped = activityMapper[row.game as number];
-          if (mapped == "add") {
-            point = row.point;
-            console.log(group.id, row.point);
-            currentScore += point;
-          } else if (mapped == "rank") {
-            const pointArr = [10, 8, 6, 4, 2, 1];
-            const gamePoint = [
-              ...new Set(
-                gameData[row.game]
-                  .map((e) => {
-                    return e.max;
-                  })
-                  .sort((a, b) => a - b)
-              ),
-            ];
-            const index = gamePoint.findIndex((e) => e == row.point);
-            if (index > pointArr.length - 1) {
-              point = pointArr[pointArr.length - 1];
-            } else {
-              point = pointArr[index];
-            }
-            // console.log(point);
-            // console.log(gameData[row.game].sort((a, b) => a.max - b.max));
-          } else if (mapped == "rank2") {
-            const pointArr = [15, 10, 7, 4];
-            const gamePoint = [
-              ...new Set(
-                gameData[row.game]
-                  .map((e) => {
-                    return e.max;
-                  })
-                  .sort((a, b) => a - b)
-              ),
-            ];
-            const index = gamePoint.findIndex((e) => e == row.point);
-            if (index > pointArr.length - 1) {
-              point = pointArr[pointArr.length - 1];
-            } else {
-              point = pointArr[index];
-            }
-          } else if (mapped == "short") {
-            const pointArr = [10, 8, 6, 4, 2, 1];
-            const gamePoint = [
-              ...new Set(
-                gameData[row.game]
-                  .map((e) => {
-                    return e.max;
-                  })
-                  .sort((a, b) => b - a)
-              ),
-            ];
-            const index = gamePoint.findIndex((e) => e == row.point);
-            if (index > pointArr.length - 1) {
-              point = pointArr[pointArr.length - 1];
-            } else {
-              point = pointArr[index];
-            }
-          }
-          // } else if (mapped == "short") {
-          // console.log(row, point);
-          checkingData[group.id][row.game].push(point);
-        }
-        // let group = groups.
-        leaderboardDict[
-          groups.filter((e) => e.id == group.id)[0].name as string
-        ] = currentScore;
-      }
-      console.log("Before", JSON.stringify(leaderboardDict));
-
-      for (const [game_id, game] of Object.entries(gameData)) {
-        // console.log(game_id, game);
-        const game_type = activityMapper[Number(game_id)];
-        // console.log(game_type);
-        if (game_type == "add") {
-          continue;
-        }
-
-        let point = 0;
-        // let count = 0;
-        for (const group of game) {
-          // count++;
-          if (game_type == "rank") {
-            const pointArr = [10, 8, 6, 4, 2, 1];
-            const gamePoint = [
-              ...new Set(
-                game
-                  .map((e) => {
-                    return e.max;
-                  })
-                  .sort((a, b) => a - b)
-              ),
-            ];
-            const index = gamePoint.findIndex((e) => e == group.max);
-            if (index > pointArr.length - 1) {
-              point = pointArr[pointArr.length - 1];
-            } else {
-              point = pointArr[index];
-            }
-          } else if (game_type == "rank2") {
-            const pointArr = [15, 10, 7, 4];
-            const gamePoint = [
-              ...new Set(
-                game
-                  .map((e) => {
-                    return e.max;
-                  })
-                  .sort((a, b) => a - b)
-              ),
-            ];
-            const index = gamePoint.findIndex((e) => e == group.max);
-            if (index > pointArr.length - 1) {
-              point = pointArr[pointArr.length - 1];
-            } else {
-              point = pointArr[index];
-            }
-          } else if (game_type == "short") {
-            const pointArr = [10, 8, 6, 4, 2, 1];
-            const gamePoint = [
-              ...new Set(
-                game
-                  .map((e) => {
-                    return e.max;
-                  })
-                  .sort((a, b) => b - a)
-              ),
-            ];
-            const index = gamePoint.findIndex((e) => e == group.max);
-            if (index > pointArr.length - 1) {
-              point = pointArr[pointArr.length - 1];
-            } else {
-              point = pointArr[index];
-            }
-          }
-          leaderboardDict[
-            groups.filter((e) => e.id == group.group)[0].name as string
-          ] += point;
-          // leaderboardDict[group.name as string] += point;
-        }
-      }
-
-      console.log(checkingData);
-      console.log(leaderboardDict);
-      const result = Object.entries(leaderboardDict).map(
-        ([groupName, score]) => ({
-          group_name: groupName,
-          total_points: score,
-        })
-      );
-      result.sort((a, b) => {
-        return b.total_points - a.total_points;
-      });
-      const finalLeaderboard = result.map((e) => {
-        const final: Leaderboard = { ...e };
-        final.group_id = groups.filter((i) => i.name == e.group_name)[0]["id"];
-        return final;
-      });
-      setLeaderboard(finalLeaderboard);
-    } catch (e) {
-      console.log(e);
-    } finally {
+    if (gamesError) {
+      console.error("Error fetching games:", gamesError);
       setIsLoading(false);
+      return;
     }
-    // try {
-    //   setIsLoading(true);
-    //   const { data, error } = await supabase.rpc("get_foc_leaderboard");
 
-    //   if (error) {
-    //     throw error;
-    //   }
+    // Fetch all points
+    const { data: pointsData, error: pointsError } = await supabase
+      .from("foc_points")
+      .select("*");
 
-    //   if (!data) {
-    //     return;
-    //   }
+    if (pointsError) {
+      console.error("Error fetching points:", pointsError);
+      setIsLoading(false);
+      return;
+    }
 
-    //   setLeaderboard(data);
-    // } catch (e) {
-    //   console.log(e);
-    // } finally {
-    //   setIsLoading(false);
-    // }
+    // Fetch all groups
+    const { data: groupsData, error: groupsError } = await supabase
+      .from("foc_group")
+      .select("*")
+      .order("id", { ascending: true });
+
+    if (groupsError) {
+      console.error("Error fetching groups:", groupsError);
+      setIsLoading(false);
+      return;
+    }
+
+    // Calculate total points for each group
+    const leaderboardDict: { [key: string]: number } = {};
+    
+    // Initialize all groups with 0 points
+    groupsData.forEach((group) => {
+      leaderboardDict[group.id] = 0;
+    });
+    
+    // Add points from foc_points table
+    pointsData.forEach((point) => {
+      const game = gamesData.find((g) => g.id === point.game_id);
+      if (game) {
+        leaderboardDict[point.group_id] = (leaderboardDict[point.group_id] || 0) + point.point;
+      }
+    });
+
+    // Convert to array and sort by total points
+    const result = Object.entries(leaderboardDict).map(([group_id, total_points]) => {
+      const group = groupsData.find(g => g.id === parseInt(group_id));
+      return {
+        group_id: parseInt(group_id),
+        group_name: group ? group.name : `Group ${group_id}`,
+        total_points,
+      };
+    });
+
+    result.sort((a, b) => b.total_points - a.total_points);
+    setLeaderboard(result);
+    setIsLoading(false);
   };
-
-  // async function getFreeze() {
-  //   const { data, error } = await supabase
-  //     .from("foc_state")
-  //     .select()
-  //     .eq("name", "freeze");
-  //   if (error) {
-  //     console.log(error);
-  //     return;
-  //   }
-  //   if (!data) {
-  //     return;
-  //   }
-  //   return setFreeze(data[0].state == "true");
-  // }
 
   useEffect(() => {
     const channel = supabase
@@ -402,9 +186,9 @@ function Home({ oc_mode = false }: { oc_mode?: boolean }) {
   return (
     <main className="min-h-[100dvh] bg-white flex flex-col space-y-6 items-center justify-around w-full max-w-sm mx-auto">
       <div className="flex flex-col pt-12">
-        <h1 className="text-2xl text-center font-light">SOC FOC 24'</h1>
+        <h1 className="text-2xl text-center font-light">SOC FOC 25'</h1>
         <h1 className="text-3xl text-center text-purple-900 tracking-wide font-bold">
-          BLINK IN TIME
+          THE HUNGER GAMES
         </h1>
       </div>
 

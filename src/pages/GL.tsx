@@ -22,6 +22,79 @@ function GL() {
   const [groupDataLoading, setGroupDataLoading] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
 
+  const fetchGroupData = async () => {
+    setGroupDataLoading(true);
+    try {
+      // Check if auth and group_id exist
+      if (!auth) {
+        console.error("No auth found");
+        setGroupDataLoading(false);
+        return;
+      }
+      
+      if (auth.type !== "GL") {
+        console.error("User is not a GL");
+        setGroupDataLoading(false);
+        return;
+      }
+      
+      if (!auth.group_id) {
+        console.error("No group_id found for user:", auth);
+        setGroupDataLoading(false);
+        return;
+      }
+
+      console.log("Fetching group data for group_id:", auth.group_id);
+      
+      const { data, error } = await supabase
+        .from("foc_group")
+        .select("*")
+        .eq("id", auth.group_id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching group data:", error);
+        throw error;
+      }
+
+      if (!data) {
+        console.error("No group data found for group_id:", auth.group_id);
+        return;
+      }
+
+      console.log("Group data fetched:", data);
+      setGroupData(data);
+    } catch (e) {
+      console.error("Error fetching group data:", e);
+    } finally {
+      setGroupDataLoading(false);
+    }
+  };
+
+  const handleGroupNameChange = async (newName: string) => {
+    try {
+      if (!auth || !auth.group_id) {
+        toast.error("Cannot update group name: No group ID found");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("foc_group")
+        .update({ name: newName })
+        .eq("id", auth.group_id);
+
+      if (error) {
+        throw error;
+      }
+
+      setGroupData(prev => prev ? { ...prev, name: newName } : null);
+      toast.success("Group name updated successfully");
+    } catch (e) {
+      console.error("Error updating group name:", e);
+      toast.error("Failed to update group name");
+    }
+  };
+
   const handleNameChange = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -37,52 +110,7 @@ function GL() {
       );
     }
     
-    updateGroupName();
-  };
-
-  const updateGroupName = async () => {
-    try {
-      const { error } = await supabase
-        .from("foc_group")
-        .update({
-          name: newGroupName,
-        } as Group)
-        .eq("id", groupData?.id);
-
-      if (error) {
-        throw error;
-      }
-
-      getGroupData();
-      toast.success(
-        `Group ${groupData?.id}'s name has successfully been changed to "${newGroupName}"!`
-      );
-    } catch (e) {
-      toast.error(
-        `Failed to change Group name to "${newGroupName}", please inform OC.`
-      );
-      console.log(e);
-    }
-  };
-
-  const getGroupData = async () => {
-    setGroupDataLoading(true);
-    try {
-      const { data, error } = await supabase.rpc("get_og", {
-        admin: auth?.admin,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      setGroupData(data[0]);
-      setNewGroupName(data[0].name);
-    } catch (e) {
-      console.log(e);
-    } finally {
-      setGroupDataLoading(false);
-    }
+    handleGroupNameChange(newGroupName);
   };
 
   useEffect(() => {
@@ -93,7 +121,10 @@ function GL() {
       return navigate("/");
     }
 
-    if (auth && !isLoading) getGroupData();
+    if (auth && !isLoading) {
+      console.log("Auth loaded, fetching group data. Auth:", auth);
+      fetchGroupData();
+    }
   }, [auth, isLoading]);
 
   return (
@@ -104,11 +135,15 @@ function GL() {
       </h1>
 
       <main className="max-w-sm w-full flex flex-col px-4">
-        {!groupDataLoading && (
+        {groupDataLoading ? (
+          <div className="border p-4 rounded-lg shadow-md mt-8 w-full text-xl bg-white text-center">
+            <p>Loading group data...</p>
+          </div>
+        ) : groupData ? (
           <div className="border p-4 rounded-lg shadow-md mt-8 w-full text-xl bg-white">
             <h1 className="text-center">
               You are the GL of{" "}
-              <span className="font-bold">Group {groupData?.id}</span>
+              <span className="font-bold">Group {groupData.id}</span>
               🔥
             </h1>
 
@@ -123,26 +158,27 @@ function GL() {
                 <Input
                   type="text"
                   id="currentName"
-                  value={groupData?.name}
+                  value={groupData.name}
                   disabled
                 />
                 <Label className="text-xs text-gray-500 font-light">
                   Created on{" "}
-                  {dayjs(groupData?.created_at).format(
+                  {dayjs(groupData.created_at).format(
                     "DD MMM YYYY, hh:mm:ss a"
                   )}
                 </Label>
               </div>
 
               <div className="grid w-full max-w-sm items-center gap-1.5 pb-4">
-                <Label htmlFor="currentName">
+                <Label htmlFor="newGroupName">
                   <span className="font-bold">New</span> Group Name
                 </Label>
                 <Input
                   type="text"
-                  id="currentName"
+                  id="newGroupName"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
+                  placeholder="Enter new group name"
                 />
               </div>
               <Button
@@ -152,6 +188,10 @@ function GL() {
                 Change Group Name
               </Button>
             </form>
+          </div>
+        ) : (
+          <div className="border p-4 rounded-lg shadow-md mt-8 w-full text-xl bg-white text-center">
+            <p>No group data found. Please contact an OC.</p>
           </div>
         )}
       </main>

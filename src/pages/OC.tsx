@@ -19,7 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import dayjs from "dayjs";
 import Logout from "@/components/Logout";
-import { Trash2 } from "lucide-react";
+import { Trash2, Clock, User as UserIcon, Edit, Save, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,9 +31,23 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import Home from "./Home";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import CalculateRaceScores from "@/components/CalculateRaceScores";
 
 function OC() {
   const [logs, setLogs] = useState<any[]>([]);
+  const [amazingRaceLogs, setAmazingRaceLogs] = useState<any[]>([]);
+  const [raceResults, setRaceResults] = useState<any[]>([]);
+  const [isEditingRow, setIsEditingRow] = useState<number | null>(null);
+  const [editFormData, setEditFormData] = useState<any>({});
   const navigate = useNavigate();
   const [freeze, setFreeze] = useState(false);
   const [groups, setGroups] = useState<any[]>([]);
@@ -44,7 +58,7 @@ function OC() {
 
   const [day1Game, setDay1Game] = useState<boolean>(false);
   const [day2Game, setDay2Game] = useState<boolean>(false);
-  const [scavenger, setScavenger] = useState<boolean>(false);
+  const [day3Game, setDay3Game] = useState<boolean>(false);
 
   const { auth, isLoading } = useAuth();
 
@@ -80,6 +94,23 @@ function OC() {
       return;
     }
     toast.success("Record removed");
+  }
+
+  async function confirmDeleteRaceLog(tableName: string, log_id: number) {
+    const { error } = await supabase
+      .from(tableName)
+      .delete()
+      .eq("id", log_id);
+    if (error) {
+      console.log(error);
+      return;
+    }
+    toast.success("Time record removed");
+    getAmazingRaceLogs();
+  }
+
+  function formatTime(min: number, sec: number, ms: number): string {
+    return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   }
 
   async function getFreeze() {
@@ -131,9 +162,9 @@ function OC() {
       .from("foc_points")
       .insert([
         {
-          user: auth.admin,
-          group: group,
-          game: 16,
+          user_id: auth.admin,
+          group_id: group,
+          game_id: 99,
           point: value,
           remarks: remarks,
         },
@@ -159,8 +190,8 @@ function OC() {
     if (day2Game) {
       state.push("2");
     }
-    if (scavenger) {
-      state.push("1.5");
+    if (day3Game) {
+      state.push("3");
     }
     console.log(state);
     const { data, error } = await supabase
@@ -199,6 +230,69 @@ function OC() {
     console.log(data);
   }
 
+  function getGameName(tableName: string): string {
+    switch (tableName) {
+      case "balloon_relay":
+        return "Balloon Relay";
+      case "hula_hoop_pass":
+        return "Hula Hoop Pass";
+      case "memory_chain":
+        return "Memory Chain";
+      case "six_legged_pentathlon":
+        return "Six Legged Pentathlon";
+      case "glass_bridge":
+        return "Glass Bridge";
+      case "guess_the_picture":
+        return "Guess the Picture";
+      case "bingo":
+        return "Bingo";
+      default:
+        return tableName;
+    }
+  }
+
+  async function getAmazingRaceLogs() {
+    const tables = [
+      "balloon_relay",
+      "hula_hoop_pass",
+      "memory_chain",
+      "six_legged_pentathlon",
+      "glass_bridge",
+      "guess_the_picture",
+      "bingo"
+    ];
+    
+    let allLogs: any[] = [];
+    
+    for (const table of tables) {
+      const { data, error } = await supabase
+        .from(table)
+        .select("*, foc_group(*), foc_user(*)")
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.log(`Error fetching from ${table}:`, error);
+        continue;
+      }
+      
+      if (data && data.length > 0) {
+        // Add table name to each log entry
+        const logsWithTable = data.map(log => ({
+          ...log,
+          table_name: table
+        }));
+        allLogs = [...allLogs, ...logsWithTable];
+      }
+    }
+    
+    // Sort all logs by creation time
+    allLogs.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    
+    setAmazingRaceLogs(allLogs);
+  }
+
   useEffect(() => {
     async function getLogs() {
       const { data, error } = await supabase
@@ -225,11 +319,12 @@ function OC() {
       if (gameState.includes("2")) {
         setDay2Game(true);
       }
-      if (gameState.includes("1.5")) {
-        setScavenger(true);
+      if (gameState.includes("3")) {
+        setDay3Game(true);
       }
     }
 
+    // Set up real-time subscription for both points logs and amazing race logs
     const channel = supabase
       .channel("table-db-changes")
       .on(
@@ -238,7 +333,6 @@ function OC() {
         (payload) => {
           console.log("Change received!", payload);
           getLogs();
-
           return;
         }
       )
@@ -251,27 +345,81 @@ function OC() {
           return;
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "balloon_relay" },
+        (payload) => {
+          console.log("Change received!", payload);
+          getAmazingRaceLogs();
+          return;
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "hula_hoop_pass" },
+        (payload) => {
+          console.log("Change received!", payload);
+          getAmazingRaceLogs();
+          return;
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "memory_chain" },
+        (payload) => {
+          console.log("Change received!", payload);
+          getAmazingRaceLogs();
+          return;
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "six_legged_pentathlon" },
+        (payload) => {
+          console.log("Change received!", payload);
+          getAmazingRaceLogs();
+          return;
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "glass_bridge" },
+        (payload) => {
+          console.log("Change received!", payload);
+          getAmazingRaceLogs();
+          return;
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "guess_the_picture" },
+        (payload) => {
+          console.log("Change received!", payload);
+          getAmazingRaceLogs();
+          return;
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bingo" },
+        (payload) => {
+          console.log("Change received!", payload);
+          getAmazingRaceLogs();
+          return;
+        }
+      )
       .subscribe();
 
+    // Initial data fetching
     getFreeze();
     getLogs();
+    getAmazingRaceLogs();
+    
+    // Cleanup function
     return () => {
       channel.unsubscribe();
     };
   }, []);
-
-  // function normalise_date(date: string) {
-  //   let timestamp = new Date(date);
-  //   const options: Intl.DateTimeFormatOptions = {
-  //     day: "numeric",
-  //     month: "long",
-  //     hour: "numeric",
-  //     minute: "2-digit",
-  //     hour12: true,
-  //   };
-  //   const formattedTimestamp = timestamp.toLocaleDateString("en-UK", options);
-  //   return formattedTimestamp;
-  // }
 
   async function getGroups(): Promise<any[]> {
     const { data, error } = await supabase
@@ -288,8 +436,108 @@ function OC() {
   }
 
   useEffect(() => {
-    if (day1Game || day2Game || scavenger) updateGameState();
-  }, [day1Game, day2Game, scavenger]);
+    if (day1Game || day2Game || day3Game) updateGameState();
+  }, [day1Game, day2Game, day3Game]);
+
+  // Prepare data for the race results table
+  function prepareRaceResultsTable() {
+    // First, create a map to track the best time for each group-station combination
+    const resultsMap = new Map();
+    
+    amazingRaceLogs.forEach(log => {
+      const key = `${log.group_id}-${log.table_name}`;
+      const time = (log.minutes * 60) + log.seconds + (log.milliseconds / 100);
+      
+      if (!resultsMap.has(key) || time < resultsMap.get(key).time) {
+        resultsMap.set(key, {
+          group_id: log.group_id,
+          group_name: log.foc_group?.name || 'Unknown',
+          station: getGameName(log.table_name),
+          minutes: log.minutes,
+          seconds: log.seconds,
+          milliseconds: log.milliseconds,
+          time_value: time,
+          id: log.id,
+          table_name: log.table_name
+        });
+      }
+    });
+    
+    // Convert the map to an array
+    return Array.from(resultsMap.values());
+  }
+  
+  // Handle edit form data changes
+  const handleEditFormChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setEditFormData({
+      ...editFormData,
+      [name]: name === 'minutes' || name === 'seconds' || name === 'milliseconds' 
+        ? Number(value) 
+        : value
+    });
+  };
+  
+  // Handle edit form submission
+  const handleEditFormSubmit = async (index: number) => {
+    const log = raceResults[index];
+    const tableName = log.table_name;
+    
+    // Validate the time values
+    if (
+      editFormData.minutes < 0 || editFormData.minutes > 59 ||
+      editFormData.seconds < 0 || editFormData.seconds > 59 ||
+      editFormData.milliseconds < 0 || editFormData.milliseconds > 99
+    ) {
+      toast.error("Invalid time values. Please check your input.");
+      return;
+    }
+    
+    const { error } = await supabase
+      .from(tableName)
+      .update({
+        minutes: editFormData.minutes,
+        seconds: editFormData.seconds,
+        milliseconds: editFormData.milliseconds
+      })
+      .eq('id', log.id);
+      
+    if (error) {
+      console.log(error);
+      toast.error("Failed to update time record");
+      return;
+    }
+    
+    toast.success("Time record updated successfully");
+    getAmazingRaceLogs();
+    setIsEditingRow(null);
+  };
+  
+  // Start editing a row
+  const handleEditClick = (index: number) => {
+    const log = raceResults[index];
+    setEditFormData({
+      minutes: log.minutes,
+      seconds: log.seconds,
+      milliseconds: log.milliseconds
+    });
+    setIsEditingRow(index);
+  };
+  
+  // Cancel editing
+  const handleCancelClick = () => {
+    setIsEditingRow(null);
+  };
+
+  useEffect(() => {
+    // Update the race results table whenever amazingRaceLogs changes
+    if (amazingRaceLogs.length > 0) {
+      const results = prepareRaceResultsTable();
+      setRaceResults(results);
+    } else {
+      setRaceResults([]);
+    }
+  }, [amazingRaceLogs]);
 
   return (
     <div className="w-full max-w-sm mx-auto min-h-[100dvh] px-3 py-5 flex flex-col gap-5">
@@ -317,22 +565,6 @@ function OC() {
             <div className="flex items-center space-x-2">
               <Checkbox
                 className="data-[state=checked]:bg-purple-800 h-6 w-6 rounded-md"
-                id="scavenger"
-                checked={scavenger}
-                onCheckedChange={(e: boolean) => {
-                  setScavenger(e);
-                }}
-              />
-              <label
-                htmlFor="scavenger"
-                className="font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Scavenger Odyssey
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                className="data-[state=checked]:bg-purple-800 h-6 w-6 rounded-md"
                 id="day2Game"
                 checked={day2Game}
                 onCheckedChange={(e: boolean) => {
@@ -344,6 +576,22 @@ function OC() {
                 className="font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 Day 2 Games
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                className="data-[state=checked]:bg-purple-800 h-6 w-6 rounded-md"
+                id="day2Game"
+                checked={day3Game}
+                onCheckedChange={(e: boolean) => {
+                  setDay3Game(e);
+                }}
+              />
+              <label
+                htmlFor="day3Game"
+                className="font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Day 3 Games
               </label>
             </div>
             <Switch.Group as="div" className="flex items-center pt-4">
@@ -441,110 +689,360 @@ function OC() {
 
       <Separator className="my-2" />
 
-      <div id="logs" className="pb-5 overflow-hidden h-[75dvh]">
+      {/* Tabs for different log types */}
+      <Tabs defaultValue="points" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="points">Points Logs</TabsTrigger>
+          <TabsTrigger value="race">Amazing Race Logs</TabsTrigger>
+        </TabsList>
+        
+        {/* Points Logs Tab */}
+        <TabsContent value="points">
+          <div id="points-logs" className="pb-5 overflow-hidden h-[75dvh]">
+            <h1 className="text-xl font-bold pb-2">
+              Points Logs
+              <span className="ml-4 text-sm italic text-red-600">
+                **Score are for games not actual points
+              </span>
+            </h1>
+            <div className="h-full space-y-2 overflow-scroll pb-5">
+              {logs.map((e, idx) => {
+                return (
+                  <div className="flex flex-col min-h-16 bg-white border rounded-lg p-4" key={`log-${idx}`}>
+                    <div
+                      className="flex flex-col justify-center"
+                    >
+                      <div className="flex items-start justify-center space-x-4">
+                        <div className="flex gap-x-1.5 flex-wrap text-sm w-full">
+                          <span className="font-bold text-purple-800 uppercase">
+                            {e.foc_user.name}
+                          </span>
+                          has
+                          <span
+                            className={cn([
+                              e.point >= 0 ? "text-green-600" : "text-red-600",
+                              "font-semibold",
+                            ])}
+                          >
+                            {e.point >= 0 ? "awarded" : "penalised"}
+                          </span>
+                          <span className="font-bold">
+                            {"Group " + e.foc_group.id + ": " + e.foc_group.name}
+                          </span>
+                          <span>for</span>
+                          <span className="font-bold text-gray-500">
+                            {e.foc_game.name}
+                          </span>
+                        </div>
+                        <span
+                          className={cn([
+                            "font-bold",
+                            e.point >= 0 ? "text-green-600" : "text-red-600",
+                          ])}
+                        >
+                          {(e.point >= 0 ? "+" : "") + e.point}
+                        </span>
+                      </div>
+                    </div>
+                    {e.remarks && (
+                      <div className="py-4">
+                        <span className="text-xs font-bold">
+                          Additional Remarks
+                        </span>
+                        <p className="italic text-xs bg-slate-100 p-2 break-words ">
+                          {e.remarks}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="w-full flex justify-between items-center">
+                      <span className="text-xs text-right">
+                        {dayjs(e.created_at).format("DD MMM YYYY, hh:mm:ss a")}
+                      </span>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size={"sm"} variant={"ghost"}>
+                            <Trash2 className="w-4 aspect-square text-red-600" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Are you absolutely sure?</DialogTitle>
+                            <DialogDescription>
+                              This action cannot be undone. This will permanently
+                              delete the record and remove the data from our
+                              servers.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter className="sm:justify-start">
+                            <DialogClose asChild>
+                              <Button type="button" variant="secondary">
+                                Close
+                              </Button>
+                            </DialogClose>
+                            <DialogClose asChild>
+                              <Button
+                                className="bg-red-600 hover:bg-red-700"
+                                type="button"
+                                onClick={() => confirmDelete(e.id)}
+                              >
+                                Confirm
+                              </Button>
+                            </DialogClose>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </TabsContent>
+        
+        {/* Amazing Race Logs Tab */}
+        <TabsContent value="race">
+          <div id="race-logs" className="pb-5 overflow-hidden h-[75dvh]">
+            <h1 className="text-xl font-bold pb-2">
+              Amazing Race Logs
+              <span className="ml-4 text-sm italic text-red-600">
+                **Time records for race events
+              </span>
+            </h1>
+            <div className="h-full space-y-2 overflow-scroll pb-5">
+              {amazingRaceLogs.length > 0 ? (
+                amazingRaceLogs.map((log, idx) => (
+                  <div className="flex flex-col min-h-16 bg-white border rounded-lg p-4" key={`raceLog-${idx}`}>
+                    <div className="flex flex-col justify-center">
+                      <div className="flex items-start justify-between">
+                        <div className="flex gap-x-1.5 flex-wrap text-sm w-full">
+                          <span className="font-bold">
+                            {"Group " + log.foc_group.id + ": " + log.foc_group.name}
+                          </span>
+                          <span>completed</span>
+                          <span className="font-bold text-purple-800">
+                            {getGameName(log.table_name)}
+                          </span>
+                          <span>in</span>
+                          <span className="font-bold text-blue-600">
+                            {formatTime(log.minutes, log.seconds, log.milliseconds)}
+                          </span>
+                        </div>
+                        <Clock className="w-5 h-5 text-blue-600 ml-2" />
+                      </div>
+                    </div>
+                    
+                    <div className="w-full flex justify-between items-center mt-2">
+                      <span className="flex items-center gap-1 text-xs">
+                        {log.foc_user ? (
+                          <>
+                            <UserIcon className="w-3 h-3 text-purple-800" />
+                            <span className="font-medium text-purple-800">{log.foc_user.name}</span>
+                          </>
+                        ) : (
+                          "Unknown user"
+                        )}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {dayjs(log.created_at).format("DD MMM YYYY, hh:mm:ss a")}
+                      </span>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size={"sm"} variant={"ghost"}>
+                            <Trash2 className="w-4 aspect-square text-red-600" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Are you absolutely sure?</DialogTitle>
+                            <DialogDescription>
+                              This action cannot be undone. This will permanently
+                              delete the time record and remove the data from our
+                              servers.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter className="sm:justify-start">
+                            <DialogClose asChild>
+                              <Button type="button" variant="secondary">
+                                Close
+                              </Button>
+                            </DialogClose>
+                            <DialogClose asChild>
+                              <Button
+                                className="bg-red-600 hover:bg-red-700"
+                                type="button"
+                                onClick={() => confirmDeleteRaceLog(log.table_name, log.id)}
+                              >
+                                Confirm
+                              </Button>
+                            </DialogClose>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-gray-500 mt-4">No amazing race records available</div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+      
+      {/* Race Results Table Section */}
+      <Separator className="my-4" />
+      <div>
         <h1 className="text-xl font-bold pb-2">
-          Logs
-          <span className="ml-4 text-sm italic text-red-600">
-            **Score are for games not actual points
+          Race Results Table
+          <span className="ml-4 text-sm italic text-blue-600">
+            **Best times for each group-station combination
           </span>
         </h1>
-        <div className="h-full space-y-2 overflow-scroll pb-5">
-          {logs.map((e, idx) => {
-            return (
-              <div className="flex flex-col min-h-16 bg-white border rounded-lg p-4">
-                <div
-                  className="flex flex-col justify-center"
-                  key={"logs" + idx}
-                >
-                  <div className="flex items-start justify-center space-x-4">
-                    <div className="flex gap-x-1.5 flex-wrap text-sm w-full">
-                      <span className="font-bold text-purple-800 uppercase">
-                        {e.foc_user.name}
-                      </span>
-                      has
-                      <span
-                        className={cn([
-                          e.point >= 0 ? "text-green-600" : "text-red-600",
-                          "font-semibold",
-                        ])}
-                      >
-                        {e.point >= 0 ? "awarded" : "penalised"}
-                      </span>
-                      <span className="font-bold">
-                        {"Group " + e.foc_group.id + ": " + e.foc_group.name}
-                      </span>
-                      {/* <span className="font-bold">
-                        {(e.point >= 0 ? "+" : "") + e.point}
-                      </span> */}
-                      <span>for</span>
-                      <span className="font-bold text-gray-500">
-                        {e.foc_game.name}
-                      </span>
-                    </div>
-                    <span
-                      className={cn([
-                        "font-bold",
-                        e.point >= 0 ? "text-green-600" : "text-red-600",
-                      ])}
-                    >
-                      {(e.point >= 0 ? "+" : "") + e.point}
-                    </span>
-                  </div>
-                </div>
-                {e.remarks && (
-                  <div className="py-4">
-                    <span className="text-xs font-bold">
-                      Additional Remarks
-                    </span>
-                    <p className="italic text-xs bg-slate-100 p-2 break-words ">
-                      {e.remarks}
-                    </p>
-                  </div>
+        <form onSubmit={(e) => e.preventDefault()}>
+          <div className="overflow-auto max-h-[50dvh] border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">Group #</TableHead>
+                  <TableHead>Group Name</TableHead>
+                  <TableHead>Station</TableHead>
+                  <TableHead className="w-36">Time</TableHead>
+                  <TableHead className="w-24">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {raceResults.length > 0 ? (
+                  raceResults.map((result, index) => (
+                    <TableRow key={`result-${index}`}>
+                      <TableCell className="font-medium">{result.group_id}</TableCell>
+                      <TableCell>{result.group_name}</TableCell>
+                      <TableCell>{result.station}</TableCell>
+                      <TableCell>
+                        {isEditingRow === index ? (
+                          <div className="flex space-x-1">
+                            <Input
+                              type="number"
+                              name="minutes"
+                              min="0"
+                              max="59"
+                              value={editFormData.minutes}
+                              onChange={handleEditFormChange}
+                              className="w-12 p-1 h-8"
+                            />
+                            <span className="self-center">:</span>
+                            <Input
+                              type="number"
+                              name="seconds"
+                              min="0"
+                              max="59"
+                              value={editFormData.seconds}
+                              onChange={handleEditFormChange}
+                              className="w-12 p-1 h-8"
+                            />
+                            <span className="self-center">.</span>
+                            <Input
+                              type="number"
+                              name="milliseconds"
+                              min="0"
+                              max="99"
+                              value={editFormData.milliseconds}
+                              onChange={handleEditFormChange}
+                              className="w-14 p-1 h-8"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-blue-600 font-medium">
+                            {formatTime(result.minutes, result.seconds, result.milliseconds)}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-1">
+                          {isEditingRow === index ? (
+                            <>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleEditFormSubmit(index)}
+                              >
+                                <Save className="w-4 h-4 text-green-600" />
+                              </Button>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={handleCancelClick}
+                              >
+                                <X className="w-4 h-4 text-red-600" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleEditClick(index)}
+                              >
+                                <Edit className="w-4 h-4 text-blue-600" />
+                              </Button>
+                              <Dialog>
+                                <DialogTrigger asChild>
+                                  <Button size="icon" variant="ghost">
+                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                  </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md">
+                                  <DialogHeader>
+                                    <DialogTitle>Are you absolutely sure?</DialogTitle>
+                                    <DialogDescription>
+                                      This action cannot be undone. This will permanently
+                                      delete this time record and remove the data from our
+                                      servers.
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <DialogFooter className="sm:justify-start">
+                                    <DialogClose asChild>
+                                      <Button type="button" variant="secondary">
+                                        Close
+                                      </Button>
+                                    </DialogClose>
+                                    <DialogClose asChild>
+                                      <Button
+                                        className="bg-red-600 hover:bg-red-700"
+                                        type="button"
+                                        onClick={() => confirmDeleteRaceLog(result.table_name, result.id)}
+                                      >
+                                        Confirm
+                                      </Button>
+                                    </DialogClose>
+                                  </DialogFooter>
+                                </DialogContent>
+                              </Dialog>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-4 text-gray-500">
+                      No race results available
+                    </TableCell>
+                  </TableRow>
                 )}
-
-                <div className="w-full flex justify-between items-center">
-                  <span className="text-xs text-right">
-                    {dayjs(e.created_at).format("DD MMM YYYY, hh:mm:ss a")}
-                  </span>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button size={"sm"} variant={"ghost"}>
-                        <Trash2 className="w-4 aspect-square text-red-600" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>Are you absolutely sure?</DialogTitle>
-                        <DialogDescription>
-                          This action cannot be undone. This will permanently
-                          delete the record and remove the data from our
-                          servers.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <DialogFooter className="sm:justify-start">
-                        <DialogClose asChild>
-                          <Button type="button" variant="secondary">
-                            Close
-                          </Button>
-                        </DialogClose>
-                        <DialogClose asChild>
-                          <Button
-                            className="bg-red-600 hover:bg-red-700"
-                            type="button"
-                            onClick={() => confirmDelete(e.id)}
-                          >
-                            Confirm
-                          </Button>
-                        </DialogClose>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              </TableBody>
+            </Table>
+          </div>
+        </form>
       </div>
+
+      {/* Calculate Race Scores Section */}
+      <Separator className="my-4" />
+      <CalculateRaceScores auth={auth} />
     </div>
   );
 }

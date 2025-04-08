@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/utils/supabase";
 import { toast } from "sonner";
 import useAuth from "@/hooks/useAuth";
@@ -20,6 +20,7 @@ export default function Login() {
   const navigate = useNavigate();
   const adminRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (auth) {
@@ -42,7 +43,7 @@ export default function Login() {
       .from("foc_user")
       .select()
       .eq("admin", adminNo)
-      .eq("phone", password);
+      .eq("password", password);
     if (error) {
       console.log(error);
       return toast.error(JSON.stringify(error));
@@ -85,7 +86,10 @@ export default function Login() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" placeholder="Password" required ref={passwordRef} />
+              <Input id="password" type={showPassword ? "text" : "password"} placeholder="Password" required ref={passwordRef} />
+              <Button type="button" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? "Hide" : "Show"} Password
+              </Button>
             </div>
           </CardContent>
           <CardFooter>
