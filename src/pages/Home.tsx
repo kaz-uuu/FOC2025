@@ -45,19 +45,19 @@ function Home({ oc_mode = false }: { oc_mode?: boolean }) {
     };
   }
 
-  async function getGroups(): Promise<any[]> {
-    const { data, error } = await supabase
-      .from("foc_group")
-      .select()
-      .order("id", { ascending: true });
-    if (error) {
-      console.log(error);
-    }
-    if (!data) {
-      return [];
-    }
-    return data;
-  }
+//   async function getGroups(): Promise<any[]> {
+//     const { data, error } = await supabase
+//       .from("foc_group")
+//       .select()
+//       .order("id", { ascending: true });
+//     if (error) {
+//       console.log(error);
+//     }
+//     if (!data) {
+//       return [];
+//     }
+//     return data;
+//   }
 
 //   const activityMapper: { [key: number]: "rank" | "rank2" | "add" | "short" } =
 //     {
