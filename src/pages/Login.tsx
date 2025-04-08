@@ -65,9 +65,9 @@ export default function Login() {
       <div className="flex items-center justify-center max-w-sm w-full px-4">
         <Card className="w-full">
           <CardHeader>
-            <CardTitle className="text-2xl text-center font-light">SOC FOC 24'</CardTitle>
+            <CardTitle className="text-2xl text-center font-light">SOC FOC 25'</CardTitle>
             <CardTitle className="text-3xl text-center text-purple-900 tracking-wide font-bold">
-              BLINK IN TIME
+              THE HUNGER GAMES
             </CardTitle>
             {/* <CardDescription>
             Enter your  below to login to your account.
