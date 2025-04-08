@@ -75,7 +75,7 @@ export default function Login() {
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="admin">Admin No.</Label>
+              <Label htmlFor="admin">ID</Label>
               <Input
                 id="admin"
                 type="text"
