@@ -327,9 +327,9 @@ function GP() {
           <div>
             <div id="logs" className="pb-5 overflow-hidden h-[200px]">
               <h1 className="text-xl font-bold pb-2">
-                Logs
+                Points Logs
                 <span className="ml-4 text-sm italic text-red-600">
-                  **Points that have already been awarded (Amazing Race points will be awarded by OC)
+                  Amazing Race points will be awarded by OC
                 </span>
               </h1>
               <div className="text-sm italic text-red-600 text-center">
