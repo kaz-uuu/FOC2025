@@ -11,7 +11,8 @@ import { User } from "@/hooks/AuthContext";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/utils/supabase";
-import { cn } from "@/lib/utils";
+// import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// import { format } from "date-fns";
 import dayjs from "dayjs";
 
 function RankedTimeBonusQuestion({

@@ -12,7 +12,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/utils/supabase";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -28,7 +28,7 @@ function ItemQuestion({
   groups,
   auth,
   activity_id,
-  min = -100,
+//   min = -100,
   max = 100,
 }: {
   groups: any[];

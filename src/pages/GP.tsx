@@ -1,26 +1,19 @@
-import useAuth from "@/hooks/useAuth";
+import { useEffect, useState, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { useEffect, ReactNode } from "react";
 import { supabase } from "@/utils/supabase";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@radix-ui/react-label";
-import { useState } from "react";
-import LengthQuestion from "@/components/RankedTimeQuestion";
-import AccurateQuestion from "@/components/AccurateQuestion";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// import { Input } from "@/components/ui/input";
+// import { Button } from "@/components/ui/button";
+// import { toast } from "sonner";
+// import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// import { format } from "date-fns";
+import useAuth from "@/hooks/useAuth";
 import ItemQuestion from "@/components/ItemQuestion";
-import ApocalypseQuestion from "@/components/ApocalypseQuestion";
-import TeamScoreQuestion from "@/components/TeamScoreQuestion";
-import Logout from "@/components/Logout";
-import { cn } from "@/lib/utils";
 import RankedTimeQuestion from "@/components/RankedTimeQuestion";
 import RankedTimeBonusQuestion from "@/components/RankedTimeBonusQuestion";
-import { Item, ItemIndicator } from "@radix-ui/react-select";
+import { Label } from "@radix-ui/react-label";
+import Logout from "@/components/Logout";
+import { cn } from "@/lib/utils";
 
 function GP() {
   const navigate = useNavigate();

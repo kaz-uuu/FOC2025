@@ -1,16 +1,12 @@
-import { supabase } from "@/utils/supabase";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useEffect, useState } from "react";
-
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { supabase } from "@/utils/supabase";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+// import { format } from "date-fns";
+// import useAuth from "@/hooks/useAuth";
+// import { useNavigate } from "react-router-dom";
+// import { Button } from "@/components/ui/button";
+// import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { Info } from "lucide-react";
 
@@ -63,25 +59,25 @@ function Home({ oc_mode = false }: { oc_mode?: boolean }) {
     return data;
   }
 
-  const activityMapper: { [key: number]: "rank" | "rank2" | "add" | "short" } =
-    {
-      1: "rank",
-      2: "short",
-      3: "rank",
-      4: "rank",
-      5: "rank",
-      6: "rank",
-      7: "rank",
-      8: "rank",
-      9: "rank",
-      10: "add",
-      11: "add",
-      12: "add",
-      13: "rank2",
-      14: "rank2",
-      15: "rank2",
-      16: "add",
-    };
+//   const activityMapper: { [key: number]: "rank" | "rank2" | "add" | "short" } =
+//     {
+//       1: "rank",
+//       2: "short",
+//       3: "rank",
+//       4: "rank",
+//       5: "rank",
+//       6: "rank",
+//       7: "rank",
+//       8: "rank",
+//       9: "rank",
+//       10: "add",
+//       11: "add",
+//       12: "add",
+//       13: "rank2",
+//       14: "rank2",
+//       15: "rank2",
+//       16: "add",
+//     };
 
   async function getLeaderboard() {
     setIsLoading(true);
