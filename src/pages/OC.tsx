@@ -212,22 +212,47 @@ function OC() {
   }
 
   async function updateFreeze() {
-    const { data, error } = await supabase
+    if (!freeze) {
+      // If we're freezing, save the current points directly from foc_points
+      const { data: pointsData, error: pointsError } = await supabase
+        .from("foc_points")
+        .select("*");
+
+      if (pointsError) {
+        toast.error("Failed to fetch points data");
+        return;
+      }
+
+      // Create a map of group_id to total points
+      const groupPoints: { [key: string]: number } = {};
+      pointsData.forEach((point) => {
+        groupPoints[point.group_id] = (groupPoints[point.group_id] || 0) + point.point;
+      });
+
+      // Save the current points in the game state
+      const { error: gameStateError } = await supabase
+        .from("foc_state")
+        .update({ state: JSON.stringify(groupPoints) })
+        .eq("name", "game");
+
+      if (gameStateError) {
+        toast.error("Failed to save game points");
+        return;
+      }
+    }
+
+    const { error } = await supabase
       .from("foc_state")
-      .update({
-        state: freeze ? "false" : "true",
-        created_at: new Date(),
-      })
-      .eq("name", "freeze")
-      .select();
+      .update({ state: (!freeze).toString() })
+      .eq("name", "freeze");
+
     if (error) {
-      console.log(error);
+      toast.error("Failed to update freeze state");
       return;
     }
-    if (!data) {
-      return;
-    }
-    console.log(data);
+
+    setFreeze(!freeze);
+    toast.success(!freeze ? "Leaderboard frozen" : "Leaderboard unfrozen");
   }
 
   function getGameName(tableName: string): string {

@@ -24,6 +24,7 @@ function Home({ oc_mode = false }: { oc_mode?: boolean }) {
   const [isLoading, setIsLoading] = useState(true);
   const [leaderboard, setLeaderboard] = useState<Leaderboard[]>([]);
   const [freeze, setFreeze] = useState(false);
+  const [freezeDate, setFreezeDate] = useState<Date | null>(null);
 
   async function getFreeze() {
     const { data, error } = await supabase
@@ -37,9 +38,14 @@ function Home({ oc_mode = false }: { oc_mode?: boolean }) {
     if (!data) {
       return;
     }
+    const isFrozen = data[0].state === "true";
+    setFreeze(isFrozen);
+    if (isFrozen && data[0].created_at) {
+      setFreezeDate(new Date(data[0].created_at));
+    }
     return {
-      freeze: data[0].state == "true",
-      freezeDate: new Date(data[0].created_at),
+      freeze: isFrozen,
+      freezeDate: data[0].created_at ? new Date(data[0].created_at) : null,
     };
   }
 
@@ -77,73 +83,136 @@ function Home({ oc_mode = false }: { oc_mode?: boolean }) {
       16: "add",
     };
 
-  const getLeaderboard = async () => {
+  async function getLeaderboard() {
     setIsLoading(true);
-    
-    // Fetch all games and their points
-    const { data: gamesData, error: gamesError } = await supabase
-      .from("foc_game")
-      .select("*");
+    try {
+      // Get the freeze state
+      const { data: freezeData, error: freezeError } = await supabase
+        .from("foc_state")
+        .select("*")
+        .eq("name", "freeze")
+        .single();
 
-    if (gamesError) {
-      console.error("Error fetching games:", gamesError);
-      setIsLoading(false);
-      return;
-    }
+      console.log("Freeze state data:", freezeData);
+      console.log("Freeze state error:", freezeError);
 
-    // Fetch all points
-    const { data: pointsData, error: pointsError } = await supabase
-      .from("foc_points")
-      .select("*");
-
-    if (pointsError) {
-      console.error("Error fetching points:", pointsError);
-      setIsLoading(false);
-      return;
-    }
-
-    // Fetch all groups
-    const { data: groupsData, error: groupsError } = await supabase
-      .from("foc_group")
-      .select("*")
-      .order("id", { ascending: true });
-
-    if (groupsError) {
-      console.error("Error fetching groups:", groupsError);
-      setIsLoading(false);
-      return;
-    }
-
-    // Calculate total points for each group
-    const leaderboardDict: { [key: string]: number } = {};
-    
-    // Initialize all groups with 0 points
-    groupsData.forEach((group) => {
-      leaderboardDict[group.id] = 0;
-    });
-    
-    // Add points from foc_points table
-    pointsData.forEach((point) => {
-      const game = gamesData.find((g) => g.id === point.game_id);
-      if (game) {
-        leaderboardDict[point.group_id] = (leaderboardDict[point.group_id] || 0) + point.point;
+      if (freezeError) {
+        console.error("Error fetching freeze state:", freezeError);
+        return;
       }
-    });
 
-    // Convert to array and sort by total points
-    const result = Object.entries(leaderboardDict).map(([group_id, total_points]) => {
-      const group = groupsData.find(g => g.id === parseInt(group_id));
-      return {
-        group_id: parseInt(group_id),
-        group_name: group ? group.name : `Group ${group_id}`,
-        total_points,
-      };
-    });
+      const isFrozen = freezeData?.state === "true";
+      console.log("Is frozen:", isFrozen);
+      setFreeze(isFrozen);
 
-    result.sort((a, b) => b.total_points - a.total_points);
-    setLeaderboard(result);
-    setIsLoading(false);
-  };
+      if (isFrozen) {
+        // If frozen, get the frozen game points
+        const { data: gamePointsData, error: gamePointsError } = await supabase
+          .from("foc_state")
+          .select("*")
+          .eq("name", "game")
+          .single();
+
+        console.log("Game points data:", gamePointsData);
+        console.log("Game points error:", gamePointsError);
+
+        if (gamePointsError) {
+          console.error("Error fetching frozen game points:", gamePointsError);
+          return;
+        }
+
+        // Parse the frozen points
+        const frozenPoints = JSON.parse(gamePointsData?.state || "{}");
+        console.log("Parsed frozen points:", frozenPoints);
+
+        // Get all groups
+        const { data: groupsData, error: groupsError } = await supabase
+          .from("foc_group")
+          .select("*");
+
+        console.log("Groups data:", groupsData);
+        console.log("Groups error:", groupsError);
+
+        if (groupsError) {
+          console.error("Error fetching groups:", groupsError);
+          return;
+        }
+
+        // Create leaderboard entries with frozen points
+        const leaderboardEntries = groupsData.map((group) => ({
+          group_id: group.id,
+          group_name: group.name,
+          total_points: frozenPoints[group.id] || 0,
+        }));
+
+        console.log("Leaderboard entries (frozen):", leaderboardEntries);
+
+        // Sort by total points in descending order
+        leaderboardEntries.sort((a, b) => b.total_points - a.total_points);
+
+        setLeaderboard(leaderboardEntries);
+        return;
+      }
+
+      // If not frozen, proceed with normal leaderboard calculation
+      const { data: pointsData, error: pointsError } = await supabase
+        .from("foc_points")
+        .select("*");
+
+      console.log("Points data:", pointsData);
+      console.log("Points error:", pointsError);
+
+      if (pointsError) {
+        console.error("Error fetching points data:", pointsError);
+        return;
+      }
+
+      const { data: groupsData, error: groupsError } = await supabase
+        .from("foc_group")
+        .select("*");
+
+      console.log("Groups data (unfrozen):", groupsData);
+      console.log("Groups error (unfrozen):", groupsError);
+
+      if (groupsError) {
+        console.error("Error fetching groups:", groupsError);
+        return;
+      }
+
+      // Calculate total points for each group
+      const groupPoints: { [key: string]: number } = {};
+
+      // Initialize all groups with 0 points
+      groupsData.forEach((group) => {
+        groupPoints[group.id] = 0;
+      });
+
+      // Add points from foc_points table
+      pointsData.forEach((point) => {
+        groupPoints[point.group_id] = (groupPoints[point.group_id] || 0) + point.point;
+      });
+
+      console.log("Calculated group points:", groupPoints);
+
+      // Create leaderboard entries
+      const leaderboardEntries = groupsData.map((group) => ({
+        group_id: group.id,
+        group_name: group.name,
+        total_points: groupPoints[group.id] || 0,
+      }));
+
+      console.log("Leaderboard entries (unfrozen):", leaderboardEntries);
+
+      // Sort by total points in descending order
+      leaderboardEntries.sort((a, b) => b.total_points - a.total_points);
+
+      setLeaderboard(leaderboardEntries);
+    } catch (error) {
+      console.error("Error in getLeaderboard:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   useEffect(() => {
     const channel = supabase
@@ -153,6 +222,7 @@ function Home({ oc_mode = false }: { oc_mode?: boolean }) {
         { event: "UPDATE", schema: "public", table: "foc_state" },
         (payload) => {
           console.log("Change received!", payload);
+          getFreeze();
           getLeaderboard();
           return;
         }
@@ -177,7 +247,10 @@ function Home({ oc_mode = false }: { oc_mode?: boolean }) {
       )
       .subscribe();
 
+    // Initial data fetching
+    getFreeze();
     getLeaderboard();
+    
     return () => {
       channel.unsubscribe();
     };
@@ -205,6 +278,11 @@ function Home({ oc_mode = false }: { oc_mode?: boolean }) {
             <AlertTitle>Attention</AlertTitle>
             <AlertDescription className="flex flex-col">
               The leaderboard is currently frozen.
+              {freezeDate && (
+                <div className="text-xs text-gray-500">
+                  Frozen on: {freezeDate.toLocaleString()}
+                </div>
+              )}
               {oc_mode && <div className="font-bold">[OC Mode Not Frozen]</div>}
             </AlertDescription>
           </Alert>

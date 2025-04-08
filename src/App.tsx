@@ -7,8 +7,7 @@ import Login from "./pages/Login";
 import GL from "./pages/GL";
 import GP from "./pages/GP";
 import OC from "./pages/OC";
-import Setup from "./pages/Setup";
-import Admin from "./pages/Admin";
+
 
 function App() {
   return (
@@ -19,8 +18,6 @@ function App() {
         <Route path="/GL" element={<GL />} />
         <Route path="/GP" element={<GP />} />
         <Route path="/OC" element={<OC />} />
-        <Route path="/setup" element={<Setup />} />
-        <Route path="/admin" element={<Admin />} />
       </Route>
     </Routes>
   );
