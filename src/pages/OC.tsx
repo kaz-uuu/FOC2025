@@ -19,7 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import dayjs from "dayjs";
 import Logout from "@/components/Logout";
-import { Trash2, Clock, User as UserIcon, Edit, Save, X } from "lucide-react";
+import { Trash2, Clock, User as UserIcon, Edit } from "lucide-react";
 import {
   Dialog,
   DialogContent,

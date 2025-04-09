@@ -6,7 +6,7 @@ import { User } from "@/hooks/AuthContext";
 import { Loader2 } from "lucide-react";
 
 // Define the ranked activities
-const RANKED_ACTIVITIES = [1, 2, 3, 4, 5, 6, 17];
+const RANKED_ACTIVITIES = [1, 2, 3, 4, 5, 6];
 
 // Define the points for each rank
 const RANK_POINTS = {
@@ -39,8 +39,6 @@ function getTableName(activityId: number): string {
       return "glass_bridge";
     case 6:
       return "guess_the_picture";
-    case 17:
-      return "bingo";
     default:
       return "";
   }
@@ -61,8 +59,6 @@ function getGameName(activityId: number): string {
       return "Glass Bridge";
     case 6:
       return "Guess the Picture";
-    case 17:
-      return "Bingo";
     default:
       return "";
   }

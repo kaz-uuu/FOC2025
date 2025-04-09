@@ -25,11 +25,11 @@ function GP() {
 
   const activityMapper: { [key: string]: ReactNode } = {
     "Balloon Relay": (
-      <RankedTimeQuestion
+      <RankedTimeBonusQuestion
         groups={groups}
         auth={auth}
         activity_id={1}
-      ></RankedTimeQuestion>
+      ></RankedTimeBonusQuestion>
     ),
     "Hula Hoop Pass": (
       <RankedTimeQuestion
