@@ -1,5 +1,5 @@
 import useAuth from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/utils/supabase";
 import { Switch } from "@headlessui/react";
@@ -570,6 +570,11 @@ function OC() {
   return (
     <div className="w-full max-w-sm mx-auto min-h-[100dvh] px-3 py-5 flex flex-col gap-5">
       <Logout />
+      <Link to="/gp" className="w-full">
+        <Button className="w-full mb-4 bg-blue-700 hover:bg-blue-800">
+          Go to GP Page
+        </Button>
+      </Link>
       <div className="flex flex-col gap-2">
         <div className="flex justify-between">
           <div className="flex gap-2 flex-col">
@@ -587,6 +592,7 @@ function OC() {
                 htmlFor="day1Game"
                 className="font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
+                
                 Day 1 Games
               </label>
             </div>
@@ -622,6 +628,8 @@ function OC() {
                 Day 3 Games
               </label>
             </div>
+          </div>
+          <div className="flex items-center space-x-2">
             <Switch.Group as="div" className="flex items-center pt-4">
               <Switch
                 checked={freeze}
@@ -650,7 +658,6 @@ function OC() {
             </Switch.Group>
           </div>
         </div>
-        <Separator className="my-2" />
         <Button
           className="bg-purple-800 hover:bg-purple-900 flex items-center justify-center space-x-4 my-2"
           onClick={() => setShowLeaderboard(!showLeaderboard)}
@@ -658,62 +665,62 @@ function OC() {
           <h1>{showLeaderboard ? "Hide" : "Show"} Leaderboard</h1>
         </Button>
         {showLeaderboard && <Home oc_mode={true} />}
-        <Separator className="my-2" />
-        <div className="flex flex-col gap-2">
-          <h1 className="font-bold text-xl">Add/Remove Points</h1>
-          <Select
-            onValueChange={(value) => {
-              if (value) {
-                setGroup(value);
-              }
-            }}
-            value={group}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select a group" />
-            </SelectTrigger>
-            <SelectContent>
-              {groups.map((e) => {
-                return (
-                  <SelectItem value={e.id} key={"Group" + e.id}>
-                    {"Group " + e.id + ": " + e.name}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <Input
-            onChange={(e) => {
-              let valueString = (e.target as HTMLInputElement).value;
-              if (valueString.length == 0) {
-                setValue("");
-              }
-              let value = Number(valueString);
-              let valueValidation = checkValue(value);
-              if (valueValidation) {
-                setValue(value);
-              }
-            }}
-            value={value == "" ? "" : value}
-            type="number"
-            id="number"
-            placeholder="Points Awarded/Deducted"
-          />
-          <Textarea
-            placeholder="Additional Remarks (optional)"
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-          />
-        </div>
-        <Button
-          className="mx-auto px-6 bg-purple-800 hover:bg-purple-900 transition-colors mt-2 w-full"
-          onClick={() => {
-            submitForm();
-          }}
-        >
-          Submit
-        </Button>
       </div>
+      <Separator className="my-2" />
+      <div className="flex flex-col gap-2">
+        <h1 className="font-bold text-xl">Add/Remove Points</h1>
+        <Select
+          onValueChange={(value) => {
+            if (value) {
+              setGroup(value);
+            }
+          }}
+          value={group}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a group" />
+          </SelectTrigger>
+          <SelectContent>
+            {groups.map((e) => {
+              return (
+                <SelectItem value={e.id} key={"Group" + e.id}>
+                  {"Group " + e.id + ": " + e.name}
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+        <Input
+          onChange={(e) => {
+            let valueString = (e.target as HTMLInputElement).value;
+            if (valueString.length == 0) {
+              setValue("");
+            }
+            let value = Number(valueString);
+            let valueValidation = checkValue(value);
+            if (valueValidation) {
+              setValue(value);
+            }
+          }}
+          value={value == "" ? "" : value}
+          type="number"
+          id="number"
+          placeholder="Points Awarded/Deducted"
+        />
+        <Textarea
+          placeholder="Additional Remarks (optional)"
+          value={remarks}
+          onChange={(e) => setRemarks(e.target.value)}
+        />
+      </div>
+      <Button
+        className="mx-auto px-6 bg-purple-800 hover:bg-purple-900 transition-colors mt-2 w-full"
+        onClick={() => {
+          submitForm();
+        }}
+      >
+        Submit
+      </Button>
 
       <Separator className="my-2" />
 
