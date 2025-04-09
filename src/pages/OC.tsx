@@ -939,7 +939,6 @@ function OC() {
                 <TableHead>Six Legged Pentathlon</TableHead>
                 <TableHead>Glass Bridge</TableHead>
                 <TableHead>Guess the Picture</TableHead>
-                <TableHead>Bingo</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -948,7 +947,7 @@ function OC() {
                   <TableRow key={`group-${group.id}`}>
                     <TableCell className="font-medium">{group.id}</TableCell>
                     <TableCell>{group.name}</TableCell>
-                    {['balloon_relay', 'hula_hoop_pass', 'memory_chain', 'six_legged_pentathlon', 'glass_bridge', 'guess_the_picture', 'bingo'].map((station) => {
+                    {['balloon_relay', 'hula_hoop_pass', 'memory_chain', 'six_legged_pentathlon', 'glass_bridge', 'guess_the_picture'].map((station) => {
                       const result = raceResults.find(r => r.group_id === group.id && r.table_name === station);
                       return (
                         <TableCell key={`${group.id}-${station}`}>
@@ -1014,7 +1013,7 @@ function OC() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-4 text-gray-500">
+                  <TableCell colSpan={8} className="text-center py-4 text-gray-500">
                     No race results available
                   </TableCell>
                 </TableRow>
