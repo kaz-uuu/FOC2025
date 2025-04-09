@@ -8,28 +8,18 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { User } from "@/hooks/AuthContext";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/utils/supabase";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { format } from "date-fns";
 
 function ItemQuestion({
   groups,
   auth,
   activity_id,
 //   min = -100,
-  max = 100,
+  max = 500,
 }: {
   groups: any[];
   auth: User | null;
@@ -41,60 +31,6 @@ function ItemQuestion({
   const [value, setValue] = useState<number | "">("");
   const [pointType, setPointType] = useState<"add" | "subtract">("add");
   const [remarks, setRemarks] = useState<string>("");
-  const [logs, setLogs] = useState<any[]>([]);
-  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
-
-  // Fetch logs for the selected activity
-  const fetchLogs = async () => {
-    setIsLoadingLogs(true);
-    try {
-      const { data, error } = await supabase
-        .from("foc_points")
-        .select("*, foc_group(name), foc_user(name)")
-        .eq("game_id", activity_id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching logs:", error);
-        toast.error("Failed to load activity logs");
-        return;
-      }
-
-      setLogs(data || []);
-    } catch (e) {
-      console.error("Error fetching logs:", e);
-      toast.error("Failed to load activity logs");
-    } finally {
-      setIsLoadingLogs(false);
-    }
-  };
-
-  // Fetch logs when component mounts or activity_id changes
-  useEffect(() => {
-    fetchLogs();
-    
-    // Set up real-time subscription for the activity
-    const channel = supabase
-      .channel(`activity-${activity_id}-changes`)
-      .on(
-        "postgres_changes",
-        { 
-          event: "*", 
-          schema: "public", 
-          table: "foc_points",
-          filter: `game_id=eq.${activity_id}`
-        },
-        (payload) => {
-          console.log("Change received!", payload);
-          fetchLogs();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, [activity_id]);
 
   function checkValue(value: number | ""): boolean {
     if (!value) {
@@ -253,53 +189,6 @@ function ItemQuestion({
         >
           {pointType === "add" ? "Add Points" : "Subtract Points"}
         </Button>
-      </div>
-
-      <div className="mt-8">
-        <h3 className="text-lg font-semibold mb-4">Activity Logs</h3>
-        {isLoadingLogs ? (
-          <div className="text-center py-4">Loading logs...</div>
-        ) : logs.length > 0 ? (
-          <div className="border rounded-md overflow-hidden">
-            <Table>
-              <TableCaption>Recent point transactions for this activity</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Group</TableHead>
-                  <TableHead>Points</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Added By</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.map((log, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="text-xs">
-                      {format(new Date(log.created_at), "MMM d, h:mm a")}
-                    </TableCell>
-                    <TableCell>
-                      Group {log.group_id}: {log.foc_group?.name || "Unknown"}
-                    </TableCell>
-                    <TableCell className={log.point >= 0 ? "text-green-600" : "text-red-600"}>
-                      {log.point >= 0 ? "+" : ""}{log.point}
-                    </TableCell>
-                    <TableCell className="max-w-[150px] truncate" title={log.remarks}>
-                      {log.remarks}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {log.foc_user?.name || "Unknown"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <div className="text-center py-4 text-gray-500">
-            No logs found for this activity
-          </div>
-        )}
       </div>
     </div>
   );

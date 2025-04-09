@@ -94,6 +94,7 @@ function OC() {
       return;
     }
     toast.success("Record removed");
+    getLogs();
   }
 
   async function confirmDeleteRaceLog(tableName: string, log_id: number) {
@@ -178,6 +179,7 @@ function OC() {
     if (data.length) {
       setRemarks("");
       setValue("");
+      getLogs();
       return toast.success("Points Added");
     }
   }
@@ -318,37 +320,38 @@ function OC() {
     setAmazingRaceLogs(allLogs);
   }
 
-  useEffect(() => {
-    async function getLogs() {
-      const { data, error } = await supabase
-        .from("foc_points")
-        .select("*, foc_user(*), foc_group(*), foc_game(*)")
-        .order("created_at", { ascending: false });
+  // Move getLogs outside the useEffect to make it accessible
+  async function getLogs() {
+    const { data, error } = await supabase
+      .from("foc_points")
+      .select("*, foc_user(*), foc_group(*), foc_game(*)")
+      .order("created_at", { ascending: false });
 
-      if (error) {
-        console.log(error);
-        return;
-      }
-      if (!data) {
-        return;
-      }
-      const groups = await getGroups();
-      setLogs(data);
-      setGroups(groups);
-      const gameState = await getGameState();
-      console.log(gameState);
-      if (gameState.includes("1")) {
-        console.log("hi");
-        setDay1Game(true);
-      }
-      if (gameState.includes("2")) {
-        setDay2Game(true);
-      }
-      if (gameState.includes("3")) {
-        setDay3Game(true);
-      }
+    if (error) {
+      console.log(error);
+      return;
     }
+    if (!data) {
+      return;
+    }
+    const groups = await getGroups();
+    setLogs(data);
+    setGroups(groups);
+    const gameState = await getGameState();
+    console.log(gameState);
+    if (gameState.includes("1")) {
+      console.log("hi");
+      setDay1Game(true);
+    }
+    if (gameState.includes("2")) {
+      setDay2Game(true);
+    }
+    if (gameState.includes("3")) {
+      setDay3Game(true);
+    }
+  }
 
+  useEffect(() => {
     // Set up real-time subscription for both points logs and amazing race logs
     const channel = supabase
       .channel("table-db-changes")
@@ -924,145 +927,162 @@ function OC() {
             **Best times for each group-station combination
           </span>
         </h1>
-        <form onSubmit={(e) => e.preventDefault()}>
-          <div className="overflow-auto max-h-[50dvh] border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-16">Group #</TableHead>
-                  <TableHead>Group Name</TableHead>
-                  <TableHead>Station</TableHead>
-                  <TableHead className="w-36">Time</TableHead>
-                  <TableHead className="w-24">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {raceResults.length > 0 ? (
-                  raceResults.map((result, index) => (
-                    <TableRow key={`result-${index}`}>
-                      <TableCell className="font-medium">{result.group_id}</TableCell>
-                      <TableCell>{result.group_name}</TableCell>
-                      <TableCell>{result.station}</TableCell>
-                      <TableCell>
-                        {isEditingRow === index ? (
-                          <div className="flex space-x-1">
-                            <Input
-                              type="number"
-                              name="minutes"
-                              min="0"
-                              max="59"
-                              value={editFormData.minutes}
-                              onChange={handleEditFormChange}
-                              className="w-12 p-1 h-8"
-                            />
-                            <span className="self-center">:</span>
-                            <Input
-                              type="number"
-                              name="seconds"
-                              min="0"
-                              max="59"
-                              value={editFormData.seconds}
-                              onChange={handleEditFormChange}
-                              className="w-12 p-1 h-8"
-                            />
-                            <span className="self-center">.</span>
-                            <Input
-                              type="number"
-                              name="milliseconds"
-                              min="0"
-                              max="99"
-                              value={editFormData.milliseconds}
-                              onChange={handleEditFormChange}
-                              className="w-14 p-1 h-8"
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-blue-600 font-medium">
-                            {formatTime(result.minutes, result.seconds, result.milliseconds)}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-1">
-                          {isEditingRow === index ? (
-                            <>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => handleEditFormSubmit(index)}
-                              >
-                                <Save className="w-4 h-4 text-green-600" />
-                              </Button>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                onClick={handleCancelClick}
-                              >
-                                <X className="w-4 h-4 text-red-600" />
-                              </Button>
-                            </>
+        <div className="overflow-auto max-h-[50dvh] border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-16">Group #</TableHead>
+                <TableHead>Group Name</TableHead>
+                <TableHead>Balloon Relay</TableHead>
+                <TableHead>Hula Hoop Pass</TableHead>
+                <TableHead>Memory Chain</TableHead>
+                <TableHead>Six Legged Pentathlon</TableHead>
+                <TableHead>Glass Bridge</TableHead>
+                <TableHead>Guess the Picture</TableHead>
+                <TableHead>Bingo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {groups.length > 0 ? (
+                groups.map((group) => (
+                  <TableRow key={`group-${group.id}`}>
+                    <TableCell className="font-medium">{group.id}</TableCell>
+                    <TableCell>{group.name}</TableCell>
+                    {['balloon_relay', 'hula_hoop_pass', 'memory_chain', 'six_legged_pentathlon', 'glass_bridge', 'guess_the_picture', 'bingo'].map((station) => {
+                      const result = raceResults.find(r => r.group_id === group.id && r.table_name === station);
+                      return (
+                        <TableCell key={`${group.id}-${station}`}>
+                          {result ? (
+                            <div className="flex items-center space-x-2">
+                              <span className="text-blue-600 font-medium">
+                                {formatTime(result.minutes, result.seconds, result.milliseconds)}
+                              </span>
+                              <div className="flex space-x-1">
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    const index = raceResults.findIndex(r => r.id === result.id);
+                                    handleEditClick(index);
+                                  }}
+                                >
+                                  <Edit className="w-4 h-4 text-blue-600" />
+                                </Button>
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button size="icon" variant="ghost">
+                                      <Trash2 className="w-4 h-4 text-red-600" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="sm:max-w-md">
+                                    <DialogHeader>
+                                      <DialogTitle>Are you absolutely sure?</DialogTitle>
+                                      <DialogDescription>
+                                        This action cannot be undone. This will permanently
+                                        delete this time record and remove the data from our
+                                        servers.
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <DialogFooter className="sm:justify-start">
+                                      <DialogClose asChild>
+                                        <Button type="button" variant="secondary">
+                                          Close
+                                        </Button>
+                                      </DialogClose>
+                                      <DialogClose asChild>
+                                        <Button
+                                          className="bg-red-600 hover:bg-red-700"
+                                          type="button"
+                                          onClick={() => confirmDeleteRaceLog(result.table_name, result.id)}
+                                        >
+                                          Confirm
+                                        </Button>
+                                      </DialogClose>
+                                    </DialogFooter>
+                                  </DialogContent>
+                                </Dialog>
+                              </div>
+                            </div>
                           ) : (
-                            <>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => handleEditClick(index)}
-                              >
-                                <Edit className="w-4 h-4 text-blue-600" />
-                              </Button>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button size="icon" variant="ghost">
-                                    <Trash2 className="w-4 h-4 text-red-600" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-md">
-                                  <DialogHeader>
-                                    <DialogTitle>Are you absolutely sure?</DialogTitle>
-                                    <DialogDescription>
-                                      This action cannot be undone. This will permanently
-                                      delete this time record and remove the data from our
-                                      servers.
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <DialogFooter className="sm:justify-start">
-                                    <DialogClose asChild>
-                                      <Button type="button" variant="secondary">
-                                        Close
-                                      </Button>
-                                    </DialogClose>
-                                    <DialogClose asChild>
-                                      <Button
-                                        className="bg-red-600 hover:bg-red-700"
-                                        type="button"
-                                        onClick={() => confirmDeleteRaceLog(result.table_name, result.id)}
-                                      >
-                                        Confirm
-                                      </Button>
-                                    </DialogClose>
-                                  </DialogFooter>
-                                </DialogContent>
-                              </Dialog>
-                            </>
+                            <span className="text-gray-400">-</span>
                           )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-4 text-gray-500">
-                      No race results available
-                    </TableCell>
+                        </TableCell>
+                      );
+                    })}
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </form>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-4 text-gray-500">
+                    No race results available
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        
+        {/* Time Editor Dialog */}
+        {isEditingRow !== null && (
+          <Dialog open={isEditingRow !== null} onOpenChange={(open) => !open && setIsEditingRow(null)}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Edit Time Record</DialogTitle>
+                <DialogDescription>
+                  Update the time for this race event.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex items-center justify-center gap-2 py-4">
+                <Input
+                  type="number"
+                  name="minutes"
+                  min="0"
+                  max="59"
+                  value={editFormData.minutes}
+                  onChange={handleEditFormChange}
+                  className="w-20 text-center"
+                />
+                <span>:</span>
+                <Input
+                  type="number"
+                  name="seconds"
+                  min="0"
+                  max="59"
+                  value={editFormData.seconds}
+                  onChange={handleEditFormChange}
+                  className="w-20 text-center"
+                />
+                <span>.</span>
+                <Input
+                  type="number"
+                  name="milliseconds"
+                  min="0"
+                  max="99"
+                  value={editFormData.milliseconds}
+                  onChange={handleEditFormChange}
+                  className="w-20 text-center"
+                />
+              </div>
+              <DialogFooter className="sm:justify-start">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleCancelClick}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => handleEditFormSubmit(isEditingRow)}
+                >
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Calculate Race Scores Section */}

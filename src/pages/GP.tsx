@@ -137,11 +137,11 @@ function GP() {
       ></ItemQuestion>
     ),
     "Bingo": (
-      <RankedTimeBonusQuestion
+      <ItemQuestion
         groups={groups}
         auth={auth}
         activity_id={17}
-      ></RankedTimeBonusQuestion>
+      ></ItemQuestion>
     ),
     "Flags": (
       <ItemQuestion
@@ -283,7 +283,7 @@ function GP() {
   }, []);
 
   return (
-    <div className="w-full max-w-sm mx-auto h-full px-3 py-8 flex flex-col gap-5">
+    <div className="w-full max-w-sm mx-auto min-h-[100dvh] px-3 py-8 flex flex-col gap-5">
       <Logout />
       <div className="grid w-full max-w-sm items-center gap-2">
         <Label htmlFor="test" className="text-xl font-bold">
@@ -325,7 +325,7 @@ function GP() {
         {activity && activityMapper[activity]}
         {activity && (
           <div>
-            <div id="logs" className="pb-5 overflow-hidden h-[200px]">
+            <div id="logs" className="pb-5 overflow-hidden h-[400px]">
               <h1 className="text-xl font-bold pb-2">
                 Points Logs
                 <span className="ml-4 text-sm italic text-red-600">
