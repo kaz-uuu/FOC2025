@@ -19,7 +19,7 @@ function ItemQuestion({
   auth,
   activity_id,
 //   min = -100,
-  max = 500,
+  max = 2000,
 }: {
   groups: any[];
   auth: User | null;
